@@ -1,0 +1,719 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>Orbit Fall: Gravidade Zero</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body {
+      margin: 0;
+      overflow: hidden;
+      background-color: #030712;
+      user-select: none;
+      -webkit-user-select: none;
+      touch-action: none;
+      font-family: system-ui, -apple-system, sans-serif;
+    }
+    canvas {
+      display: block;
+    }
+    .touch-btn {
+      background: rgba(30, 41, 59, 0.6);
+      border: 2px solid rgba(56, 189, 248, 0.4);
+      box-shadow: 0 0 15px rgba(56, 189, 248, 0.2);
+    }
+    .touch-btn:active {
+      background: rgba(56, 189, 248, 0.4);
+      transform: scale(0.95);
+    }
+  </style>
+</head>
+<body class="relative w-screen h-screen">
+
+  <canvas id="gameCanvas"></canvas>
+
+  <!-- HUD Superior (Isolado da Área Jogável) -->
+  <div id="hud" class="absolute top-2 left-3 right-3 flex items-center justify-between pointer-events-none z-20">
+    
+    <!-- Pontuação e Tempo (Esquerda) -->
+    <div class="bg-slate-900/90 border border-slate-700/70 px-3 py-1.5 rounded-xl backdrop-blur-md shadow-lg pointer-events-auto">
+      <div class="flex items-center gap-3">
+        <div>
+          <div class="text-[9px] text-slate-400 font-mono">PONTUAÇÃO</div>
+          <div id="scoreDisplay" class="text-xl font-black text-cyan-400 font-mono leading-none">0000</div>
+        </div>
+        <div class="border-l border-slate-700 pl-3">
+          <div class="text-[9px] text-slate-400 font-mono">TEMPO</div>
+          <div id="timeDisplay" class="text-xs font-mono text-white font-bold">00:00</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Barra de Oxigênio Centralizada -->
+    <div class="w-[45%] max-w-sm bg-slate-900/90 border border-slate-700/70 px-3 py-2 rounded-xl backdrop-blur-md shadow-lg">
+      <div class="flex justify-between items-center text-[11px] font-mono font-bold mb-1">
+        <span class="text-slate-300 flex items-center gap-1.5">
+          <span class="w-2 h-2 rounded-full bg-cyan-400 animate-pulse"></span>
+          ENERGIA VITAL
+        </span>
+        <span id="energyText" class="text-cyan-300 font-black">100%</span>
+      </div>
+      <div class="w-full h-3.5 bg-slate-950 rounded-full overflow-hidden border border-slate-700 p-0.5">
+        <div id="energyBar" class="h-full bg-gradient-to-r from-cyan-500 to-blue-400 rounded-full transition-all duration-75" style="width: 100%;"></div>
+      </div>
+    </div>
+
+    <!-- Botões de Ação: Pausar e Reiniciar (Direita) -->
+    <div class="flex items-center gap-2 pointer-events-auto">
+      <button id="btnPause" class="bg-slate-900/90 hover:bg-slate-800 border border-slate-700/80 text-white font-mono text-xs font-bold px-3 py-2 rounded-xl backdrop-blur-md transition flex items-center gap-1 shadow-lg active:scale-95">
+        <span id="pauseIcon">⏸️</span>
+        <span class="hidden sm:inline" id="pauseText">PAUSAR [P]</span>
+      </button>
+      <button id="btnRestartDirect" class="bg-slate-900/90 hover:bg-slate-800 border border-slate-700/80 text-amber-400 font-mono text-xs font-bold px-3 py-2 rounded-xl backdrop-blur-md transition flex items-center gap-1 shadow-lg active:scale-95">
+        <span>🔄</span>
+        <span class="hidden sm:inline">REINICIAR [R]</span>
+      </button>
+    </div>
+
+  </div>
+
+  <!-- Legenda de Controles Desktop -->
+  <div id="desktopControls" class="absolute bottom-2 left-1/2 -translate-x-1/2 text-slate-500 font-mono text-[11px] pointer-events-none hidden sm:block">
+    [A / D ou ◀ / ▶] Girar &nbsp;|&nbsp; [Espaço ou ▲] Impulso &nbsp;|&nbsp; [P] Pausar &nbsp;|&nbsp; [R] Reiniciar
+  </div>
+
+  <!-- Controles Touch (Mobile) -->
+  <div id="touchControls" class="absolute inset-0 pointer-events-none hidden z-20">
+    <div class="absolute bottom-6 left-6 flex gap-4 pointer-events-auto">
+      <button id="btnLeft" class="touch-btn w-16 h-16 rounded-full text-white text-2xl font-bold flex items-center justify-center">◀</button>
+      <button id="btnRight" class="touch-btn w-16 h-16 rounded-full text-white text-2xl font-bold flex items-center justify-center">▶</button>
+    </div>
+    <div class="absolute bottom-6 right-6 pointer-events-auto">
+      <button id="btnThrust" class="touch-btn w-20 h-20 rounded-full text-cyan-300 text-xs font-bold flex flex-col items-center justify-center tracking-wider border-cyan-400/60">
+        <span class="text-lg">▲</span>
+        <span>IMPULSO</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Modal de Pausa -->
+  <div id="pauseModal" class="absolute inset-0 bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4 z-40 hidden">
+    <div class="bg-slate-900 border border-slate-700 max-w-sm w-full p-6 rounded-2xl shadow-2xl text-center">
+      <h2 class="text-2xl font-black text-cyan-400 font-mono mb-2">JOGO PAUSADO</h2>
+      <p class="text-slate-400 text-xs font-mono mb-5">Missão em espera orbital.</p>
+      <div class="space-y-3">
+        <button id="btnResume" class="w-full bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-black py-2.5 rounded-xl font-mono text-sm transition">
+          RETOMAR MISSÃO
+        </button>
+        <button id="btnRestartFromPause" class="w-full bg-slate-800 hover:bg-slate-700 border border-slate-600 text-white font-bold py-2.5 rounded-xl font-mono text-sm transition">
+          REINICIAR DO ZERO
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Inicial / Game Over -->
+  <div id="menuModal" class="absolute inset-0 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-4 z-50">
+    <div class="bg-slate-900 border border-slate-700 max-w-md w-full p-6 rounded-2xl shadow-2xl text-center">
+      <h1 class="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-purple-500 tracking-wider mb-2">
+        ORBIT FALL
+      </h1>
+      <p class="text-slate-400 text-xs mb-5">Mantenha a órbita, colete cristais espalhados para obter oxigênio e escape dos meteoros!</p>
+
+      <div id="gameOverStats" class="hidden mb-5 bg-slate-800/60 p-4 rounded-xl border border-slate-700/60">
+        <div class="text-xs text-slate-400 font-mono">PONTUAÇÃO FINAL</div>
+        <div id="finalScore" class="text-3xl font-black text-cyan-300 font-mono mb-3">0</div>
+        
+        <div class="flex gap-2">
+          <input id="playerName" type="text" maxlength="10" placeholder="SEU NOME" class="bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-white font-mono text-sm w-full outline-none focus:border-cyan-400 text-center uppercase">
+          <button id="saveScoreBtn" class="bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold px-4 py-2 rounded-lg text-sm transition">Salvar</button>
+        </div>
+      </div>
+
+      <!-- Leaderboard Top 5 -->
+      <div class="mb-5 bg-slate-950/60 p-3 rounded-xl border border-slate-800 text-left">
+        <div class="text-xs text-slate-500 font-mono font-bold uppercase mb-2 tracking-wider">🏆 Top 5 Pilotos</div>
+        <div id="leaderboardList" class="space-y-1 text-xs font-mono text-slate-300">
+          <div class="text-slate-500">Nenhum recorde registrado ainda.</div>
+        </div>
+      </div>
+
+      <button id="startBtn" class="w-full bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 font-black py-3 rounded-xl tracking-wider text-sm shadow-lg shadow-cyan-500/20 transition transform active:scale-95">
+        INICIAR MISSÃO
+      </button>
+    </div>
+  </div>
+
+  <script>
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+
+    // Elementos HUD
+    const scoreDisplay = document.getElementById('scoreDisplay');
+    const timeDisplay = document.getElementById('timeDisplay');
+    const energyBar = document.getElementById('energyBar');
+    const energyText = document.getElementById('energyText');
+    const menuModal = document.getElementById('menuModal');
+    const startBtn = document.getElementById('startBtn');
+    const gameOverStats = document.getElementById('gameOverStats');
+    const finalScoreDisplay = document.getElementById('finalScore');
+    const playerNameInput = document.getElementById('playerName');
+    const saveScoreBtn = document.getElementById('saveScoreBtn');
+    const leaderboardList = document.getElementById('leaderboardList');
+    const touchControls = document.getElementById('touchControls');
+
+    // Pausa e Reinício
+    const btnPause = document.getElementById('btnPause');
+    const btnRestartDirect = document.getElementById('btnRestartDirect');
+    const pauseModal = document.getElementById('pauseModal');
+    const btnResume = document.getElementById('btnResume');
+    const btnRestartFromPause = document.getElementById('btnRestartFromPause');
+    const pauseIcon = document.getElementById('pauseIcon');
+    const pauseText = document.getElementById('pauseText');
+
+    const isTouch = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
+    if (isTouch) touchControls.classList.remove('hidden');
+
+    let width, height, centerX, centerY, arenaRadius;
+    const holeRadius = 24; // Reduzido para dar muito mais espaço jogável
+
+    function resize() {
+      width = canvas.width = window.innerWidth;
+      height = canvas.height = window.innerHeight;
+      centerX = width / 2;
+      
+      // O centro é ligeiramente rebaixado para a arena não encostar na barra de HUD no topo
+      const topOffset = 35;
+      centerY = (height / 2) + topOffset;
+
+      // Raio ajustado para garantir margem de sobra do topo e das bordas
+      const availableHeight = height - (topOffset * 2) - 30;
+      arenaRadius = Math.min(width * 0.46, availableHeight * 0.46);
+    }
+    window.addEventListener('resize', resize);
+    resize();
+
+    const stars = Array.from({ length: 90 }, () => ({
+      x: Math.random() * width,
+      y: Math.random() * height,
+      size: Math.random() * 1.8 + 0.5,
+      alpha: Math.random() * 0.7 + 0.3
+    }));
+
+    let ship;
+    let meteors = [];
+    let crystals = [];
+    let particles = [];
+    let keys = {};
+    let gameState = 'MENU'; // 'PLAYING', 'PAUSED', 'GAMEOVER'
+    let score = 0;
+    let timeSurvived = 0;
+    let lastMeteorSpawn = 0;
+    let lastTime = 0;
+
+    function createShip() {
+      return {
+        x: centerX,
+        y: centerY - arenaRadius * 0.65,
+        vx: 1.8,
+        vy: 0,
+        angle: 0,
+        radius: 11,
+        energy: 100,
+        maxEnergy: 100,
+        energyDepletionRate: 3.6,
+        invulnerableTime: 3.5,
+        thrusting: false,
+        rotatingLeft: false,
+        rotatingRight: false
+      };
+    }
+
+    function spawnMeteor() {
+      const angle = Math.random() * Math.PI * 2;
+      const r = arenaRadius - 6;
+      const x = centerX + Math.cos(angle) * r;
+      const y = centerY + Math.sin(angle) * r;
+
+      const speed = Math.random() * 0.7 + 0.5;
+      const toCenterAngle = Math.atan2(centerY - y, centerX - x);
+      const spreadAngle = toCenterAngle + (Math.random() - 0.5) * 0.7;
+
+      meteors.push({
+        x: x,
+        y: y,
+        vx: Math.cos(spreadAngle) * speed,
+        vy: Math.sin(spreadAngle) * speed,
+        radius: Math.random() * 6 + 9,
+        rotation: 0,
+        rotSpeed: (Math.random() - 0.5) * 0.04
+      });
+    }
+
+    // Cristais espalhados em diferentes anéis da arena
+    function spawnCrystal() {
+      const angle = Math.random() * Math.PI * 2;
+      // Varia de 20% a 85% de toda a extensão do raio da arena
+      const r = Math.random() * (arenaRadius * 0.65) + (holeRadius + 35);
+      crystals.push({
+        x: centerX + Math.cos(angle) * r,
+        y: centerY + Math.sin(angle) * r,
+        radius: 8,
+        pulse: Math.random() * Math.PI
+      });
+    }
+
+    function addExplosion(x, y, color, count = 20) {
+      for (let i = 0; i < count; i++) {
+        const ang = Math.random() * Math.PI * 2;
+        const spd = Math.random() * 3.5 + 1;
+        particles.push({
+          x: x,
+          y: y,
+          vx: Math.cos(ang) * spd,
+          vy: Math.sin(ang) * spd,
+          color: color,
+          life: 1.0,
+          decay: Math.random() * 0.03 + 0.02,
+          size: Math.random() * 3 + 1.2
+        });
+      }
+    }
+
+    // Controles de Teclado
+    window.addEventListener('keydown', (e) => {
+      keys[e.code] = true;
+      if (['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.code)) {
+        e.preventDefault();
+      }
+      if (e.code === 'KeyP' || e.code === 'Escape') {
+        togglePause();
+      }
+      if (e.code === 'KeyR') {
+        if (gameState === 'PLAYING' || gameState === 'PAUSED') {
+          startGame();
+        }
+      }
+    });
+    window.addEventListener('keyup', (e) => { keys[e.code] = false; });
+
+    // Touch
+    function setupTouchButton(el, onPress, onRelease) {
+      el.addEventListener('touchstart', (e) => { e.preventDefault(); onPress(); });
+      el.addEventListener('touchend', (e) => { e.preventDefault(); onRelease(); });
+      el.addEventListener('touchcancel', (e) => { e.preventDefault(); onRelease(); });
+    }
+    setupTouchButton(document.getElementById('btnLeft'), () => { if(ship) ship.rotatingLeft = true; }, () => { if(ship) ship.rotatingLeft = false; });
+    setupTouchButton(document.getElementById('btnRight'), () => { if(ship) ship.rotatingRight = true; }, () => { if(ship) ship.rotatingRight = false; });
+    setupTouchButton(document.getElementById('btnThrust'), () => { if(ship) ship.thrusting = true; }, () => { if(ship) ship.thrusting = false; });
+
+    // Pausar / Retomar
+    function togglePause() {
+      if (gameState === 'PLAYING') {
+        gameState = 'PAUSED';
+        pauseModal.classList.remove('hidden');
+        pauseIcon.innerText = '▶️';
+        pauseText.innerText = 'RETOMAR [P]';
+      } else if (gameState === 'PAUSED') {
+        gameState = 'PLAYING';
+        pauseModal.classList.add('hidden');
+        pauseIcon.innerText = '⏸️';
+        pauseText.innerText = 'PAUSAR [P]';
+        lastTime = performance.now();
+      }
+    }
+
+    btnPause.addEventListener('click', togglePause);
+    btnResume.addEventListener('click', togglePause);
+    btnRestartDirect.addEventListener('click', () => {
+      if (confirm("Deseja reiniciar a tentativa agora?")) {
+        startGame();
+      }
+    });
+    btnRestartFromPause.addEventListener('click', () => {
+      pauseModal.classList.add('hidden');
+      startGame();
+    });
+
+    // Iniciar Jogo
+    function startGame() {
+      resize();
+      ship = createShip();
+      meteors = [];
+      crystals = [];
+      particles = [];
+      score = 0;
+      timeSurvived = 0;
+      lastMeteorSpawn = 0;
+      lastTime = performance.now();
+
+      // Começa com 3 cristais bem distribuídos
+      for (let i = 0; i < 3; i++) spawnCrystal();
+
+      gameState = 'PLAYING';
+      menuModal.classList.add('hidden');
+      pauseModal.classList.add('hidden');
+      pauseIcon.innerText = '⏸️';
+      pauseText.innerText = 'PAUSAR [P]';
+    }
+
+    function gameOver() {
+      gameState = 'GAMEOVER';
+      addExplosion(ship.x, ship.y, '#ef4444', 35);
+      gameOverStats.classList.remove('hidden');
+      finalScoreDisplay.innerText = Math.floor(score);
+      startBtn.innerText = 'JOGAR NOVAMENTE';
+      menuModal.classList.remove('hidden');
+      renderLeaderboard();
+    }
+
+    function getLeaderboard() {
+      return JSON.parse(localStorage.getItem('orbitfall_scores') || '[]');
+    }
+
+    function saveScore(name, pts) {
+      let board = getLeaderboard();
+      board.push({ name: name || 'PILOTO', score: pts, date: new Date().toLocaleDateString('pt-BR') });
+      board.sort((a, b) => b.score - a.score);
+      board = board.slice(0, 5);
+      localStorage.setItem('orbitfall_scores', JSON.stringify(board));
+      renderLeaderboard();
+    }
+
+    function renderLeaderboard() {
+      const board = getLeaderboard();
+      if (board.length === 0) {
+        leaderboardList.innerHTML = `<div class="text-slate-500 text-xs">Nenhum recorde registrado ainda.</div>`;
+        return;
+      }
+      leaderboardList.innerHTML = board.map((item, idx) => `
+        <div class="flex justify-between items-center py-1 border-b border-slate-800 last:border-none">
+          <span class="font-bold ${idx === 0 ? 'text-amber-400' : 'text-slate-300'}">#${idx + 1} ${item.name}</span>
+          <span class="text-cyan-400 font-bold">${item.score}</span>
+        </div>
+      `).join('');
+    }
+
+    saveScoreBtn.addEventListener('click', () => {
+      saveScore(playerNameInput.value.trim().toUpperCase(), Math.floor(score));
+      playerNameInput.value = '';
+      saveScoreBtn.disabled = true;
+      saveScoreBtn.classList.add('opacity-50');
+    });
+
+    startBtn.addEventListener('click', () => {
+      saveScoreBtn.disabled = false;
+      saveScoreBtn.classList.remove('opacity-50');
+      startGame();
+    });
+
+    renderLeaderboard();
+
+    // Loop
+    function update(dt) {
+      if (gameState !== 'PLAYING') return;
+
+      timeSurvived += dt;
+      score += dt * 45;
+
+      const dx = centerX - ship.x;
+      const dy = centerY - ship.y;
+      const dist = Math.hypot(dx, dy);
+
+      const ux = dx / (dist || 1);
+      const uy = dy / (dist || 1);
+
+      // Gravidade equilibrada com raio de alcance seguro
+      const baseGravity = 0.38;
+      const closeGravity = Math.min(2.0, 220 / (dist + 40));
+      const totalGravity = baseGravity + closeGravity;
+
+      ship.vx += ux * totalGravity * dt;
+      ship.vy += uy * totalGravity * dt;
+
+      const rotSpeed = 3.6;
+      if (keys['KeyA'] || keys['ArrowLeft'] || ship.rotatingLeft) ship.angle -= rotSpeed * dt;
+      if (keys['KeyD'] || keys['ArrowRight'] || ship.rotatingRight) ship.angle += rotSpeed * dt;
+
+      const thrustPower = 3.8;
+      const isThrusting = keys['Space'] || keys['KeyW'] || keys['ArrowUp'] || ship.thrusting;
+      if (isThrusting) {
+        ship.vx += Math.cos(ship.angle) * thrustPower * dt;
+        ship.vy += Math.sin(ship.angle) * thrustPower * dt;
+
+        const flameAngle = ship.angle + Math.PI + (Math.random() - 0.5) * 0.4;
+        particles.push({
+          x: ship.x - Math.cos(ship.angle) * 11,
+          y: ship.y - Math.sin(ship.angle) * 11,
+          vx: Math.cos(flameAngle) * (Math.random() * 3 + 1),
+          vy: Math.sin(flameAngle) * (Math.random() * 3 + 1),
+          color: Math.random() > 0.5 ? '#06b6d4' : '#f97316',
+          life: 0.5,
+          decay: 0.05,
+          size: Math.random() * 3 + 1.2
+        });
+      }
+
+      ship.x += ship.vx;
+      ship.y += ship.vy;
+      ship.vx *= 0.995;
+      ship.vy *= 0.995;
+
+      if (ship.invulnerableTime > 0) ship.invulnerableTime -= dt;
+
+      ship.energy -= ship.energyDepletionRate * dt;
+      if (ship.energy <= 0) {
+        ship.energy = 0;
+        ship.vx += ux * 3.5 * dt;
+        ship.vy += uy * 3.5 * dt;
+      }
+
+      // CORREÇÃO DEFINITIVA: FÍSICA ANTI-PRESO NA BARREIRA
+      const maxAllowedDist = arenaRadius - ship.radius - 2;
+      if (dist > maxAllowedDist) {
+        // 1. Reposicionamento seguro imediato para dentro da arena
+        ship.x = centerX - ux * maxAllowedDist;
+        ship.y = centerY - uy * maxAllowedDist;
+
+        // 2. Cálculo do vetor de reflexão
+        const dot = ship.vx * ux + ship.vy * uy;
+        // Inverte a componente perpendicular e amortece
+        ship.vx = (ship.vx - 2.0 * dot * ux) * 0.7;
+        ship.vy = (ship.vy - 2.0 * dot * uy) * 0.7;
+
+        // 3. Impulso radial garantido para longe da parede (nunca ficar colado)
+        const safetyPush = 1.6;
+        ship.vx += ux * safetyPush;
+        ship.vy += uy * safetyPush;
+
+        addExplosion(ship.x, ship.y, '#38bdf8', 8);
+      }
+
+      // Colisão com Buraco Negro
+      if (dist <= holeRadius + ship.radius) {
+        gameOver();
+        return;
+      }
+
+      // Meteoros
+      if (timeSurvived - lastMeteorSpawn > Math.max(1.3, 2.7 - timeSurvived * 0.03)) {
+        spawnMeteor();
+        lastMeteorSpawn = timeSurvived;
+      }
+
+      for (let i = meteors.length - 1; i >= 0; i--) {
+        const m = meteors[i];
+        m.x += m.vx;
+        m.y += m.vy;
+        m.rotation += m.rotSpeed;
+
+        const mdx = centerX - m.x;
+        const mdy = centerY - m.y;
+        const mdist = Math.hypot(mdx, mdy);
+        m.vx += (mdx / mdist) * 0.12 * dt;
+        m.vy += (mdy / mdist) * 0.12 * dt;
+
+        const hitDist = Math.hypot(ship.x - m.x, ship.y - m.y);
+        if (ship.invulnerableTime <= 0 && hitDist < ship.radius + m.radius) {
+          gameOver();
+          return;
+        }
+
+        if (mdist < holeRadius || mdist > arenaRadius + 40) {
+          if (mdist < holeRadius) addExplosion(m.x, m.y, '#a855f7', 8);
+          meteors.splice(i, 1);
+        }
+      }
+
+      // Cristais: manter sempre entre 3 e 4 ativos pelo mapa
+      if (crystals.length < 3 && Math.random() < 0.03) {
+        spawnCrystal();
+      }
+
+      for (let i = crystals.length - 1; i >= 0; i--) {
+        const c = crystals[i];
+        c.pulse += dt * 4;
+        if (Math.hypot(ship.x - c.x, ship.y - c.y) < ship.radius + c.radius + 6) {
+          ship.energy = Math.min(ship.maxEnergy, ship.energy + 35);
+          score += 400;
+          addExplosion(c.x, c.y, '#22d3ee', 16);
+          crystals.splice(i, 1);
+        }
+      }
+
+      for (let i = particles.length - 1; i >= 0; i--) {
+        const p = particles[i];
+        p.x += p.vx;
+        p.y += p.vy;
+        p.life -= p.decay;
+        if (p.life <= 0) particles.splice(i, 1);
+      }
+
+      // HUD
+      scoreDisplay.innerText = String(Math.floor(score)).padStart(4, '0');
+      const mins = String(Math.floor(timeSurvived / 60)).padStart(2, '0');
+      const secs = String(Math.floor(timeSurvived % 60)).padStart(2, '0');
+      timeDisplay.innerText = `${mins}:${secs}`;
+
+      energyBar.style.width = `${ship.energy}%`;
+      energyText.innerText = `${Math.ceil(ship.energy)}%`;
+      if (ship.energy < 25) {
+        energyBar.className = 'h-full bg-red-500 transition-all duration-75 animate-pulse';
+        energyText.className = 'text-red-400 font-bold';
+      } else if (ship.energy < 50) {
+        energyBar.className = 'h-full bg-amber-400 transition-all duration-75';
+        energyText.className = 'text-amber-300 font-bold';
+      } else {
+        energyBar.className = 'h-full bg-gradient-to-r from-cyan-500 to-blue-400 rounded-full transition-all duration-75';
+        energyText.className = 'text-cyan-300 font-black';
+      }
+    }
+
+    function draw() {
+      ctx.fillStyle = '#030712';
+      ctx.fillRect(0, 0, width, height);
+
+      // Estrelas
+      stars.forEach(s => {
+        ctx.fillStyle = `rgba(255, 255, 255, ${s.alpha})`;
+        ctx.beginPath();
+        ctx.arc(s.x, s.y, s.size, 0, Math.PI * 2);
+        ctx.fill();
+      });
+
+      // Barreira Externa da Arena
+      ctx.strokeStyle = 'rgba(56, 189, 248, 0.25)';
+      ctx.lineWidth = 2;
+      ctx.setLineDash([8, 8]);
+      ctx.beginPath();
+      ctx.arc(centerX, centerY, arenaRadius, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      // Círculo de Alerta Interno
+      ctx.strokeStyle = 'rgba(239, 68, 68, 0.2)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.arc(centerX, centerY, holeRadius + 35, 0, Math.PI * 2);
+      ctx.stroke();
+
+      // Buraco Negro Compacto
+      const pulse = Math.sin(performance.now() * 0.003) * 3;
+      const grad = ctx.createRadialGradient(centerX, centerY, holeRadius * 0.4, centerX, centerY, holeRadius + 22 + pulse);
+      grad.addColorStop(0, '#000000');
+      grad.addColorStop(0.35, '#082f49');
+      grad.addColorStop(0.75, '#06b6d4');
+      grad.addColorStop(1, 'transparent');
+
+      ctx.fillStyle = grad;
+      ctx.beginPath();
+      ctx.arc(centerX, centerY, holeRadius + 25 + pulse, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.fillStyle = '#000000';
+      ctx.beginPath();
+      ctx.arc(centerX, centerY, holeRadius, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = '#38bdf8';
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+
+      // Cristais
+      crystals.forEach(c => {
+        const s = c.radius + Math.sin(c.pulse) * 1.8;
+        ctx.save();
+        ctx.translate(c.x, c.y);
+        ctx.rotate(c.pulse * 0.5);
+        ctx.fillStyle = '#22d3ee';
+        ctx.shadowColor = '#22d3ee';
+        ctx.shadowBlur = 10;
+        ctx.beginPath();
+        ctx.moveTo(0, -s);
+        ctx.lineTo(s * 0.7, 0);
+        ctx.lineTo(0, s);
+        ctx.lineTo(-s * 0.7, 0);
+        ctx.closePath();
+        ctx.fill();
+        ctx.restore();
+      });
+
+      // Partículas
+      particles.forEach(p => {
+        ctx.fillStyle = p.color;
+        ctx.globalAlpha = p.life;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+        ctx.fill();
+      });
+      ctx.globalAlpha = 1.0;
+
+      // Meteoros
+      meteors.forEach(m => {
+        ctx.save();
+        ctx.translate(m.x, m.y);
+        ctx.rotate(m.rotation);
+        ctx.fillStyle = '#475569';
+        ctx.strokeStyle = '#a855f7';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        const sides = 6;
+        for (let i = 0; i < sides; i++) {
+          const a = (i / sides) * Math.PI * 2;
+          const r = m.radius * (0.8 + (i % 2) * 0.3);
+          const px = Math.cos(a) * r;
+          const py = Math.sin(a) * r;
+          if (i === 0) ctx.moveTo(px, py);
+          else ctx.lineTo(px, py);
+        }
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+        ctx.restore();
+      });
+
+      // Nave
+      if (ship && (gameState === 'PLAYING' || gameState === 'PAUSED')) {
+        ctx.save();
+        ctx.translate(ship.x, ship.y);
+        ctx.rotate(ship.angle);
+
+        if (ship.invulnerableTime > 0) {
+          ctx.strokeStyle = (Math.floor(performance.now() / 120) % 2 === 0) ? '#38bdf8' : '#a855f7';
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.arc(0, 0, ship.radius + 6, 0, Math.PI * 2);
+          ctx.stroke();
+        }
+
+        ctx.fillStyle = '#e2e8f0';
+        ctx.strokeStyle = '#06b6d4';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(13, 0);
+        ctx.lineTo(-9, -8);
+        ctx.lineTo(-5, 0);
+        ctx.lineTo(-9, 8);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.restore();
+      }
+
+      requestAnimationFrame(loop);
+    }
+
+    function loop(timestamp) {
+      if (!lastTime) lastTime = timestamp;
+      const dt = Math.min((timestamp - lastTime) / 1000, 0.1);
+      lastTime = timestamp;
+
+      update(dt);
+      draw();
+    }
+
+    requestAnimationFrame(loop);
+  </script>
+</body>
+</html>
