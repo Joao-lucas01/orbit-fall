@@ -31,29 +31,51 @@
       height: 100%;
       z-index: 1;
     }
+
+    /* HUD com tamanhos explícitos e destacados no PC */
+    .hud-card {
+      background: rgba(15, 23, 42, 0.92);
+      border: 2px solid rgba(51, 65, 85, 0.9);
+      backdrop-filter: blur(10px);
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.6);
+    }
+    .score-val {
+      font-size: 38px !important;
+      line-height: 1 !important;
+    }
+    .time-val {
+      font-size: 22px !important;
+      line-height: 1 !important;
+    }
+
+    /* Botões Touch Móveis com área de toque massiva e elevados */
     .touch-btn {
-      background: rgba(15, 23, 42, 0.88);
-      border: 2px solid rgba(56, 189, 248, 0.65);
-      box-shadow: 0 0 16px rgba(56, 189, 248, 0.35);
+      background: rgba(15, 23, 42, 0.9);
+      border: 2.5px solid rgba(56, 189, 248, 0.7);
+      box-shadow: 0 0 20px rgba(56, 189, 248, 0.4);
       backdrop-filter: blur(8px);
       user-select: none;
     }
     .touch-btn:active {
-      background: rgba(56, 189, 248, 0.5);
-      transform: scale(0.93);
+      background: rgba(56, 189, 248, 0.55);
+      transform: scale(0.92);
     }
-    /* Posicionamento mais alto e acessível no mobile */
     .mobile-left-controls {
       position: absolute !important;
-      bottom: 95px !important;
-      left: 20px !important;
+      bottom: 110px !important;
+      left: 18px !important;
       z-index: 50 !important;
     }
     .mobile-right-controls {
       position: absolute !important;
-      bottom: 95px !important;
-      right: 20px !important;
+      bottom: 110px !important;
+      right: 18px !important;
       z-index: 50 !important;
+    }
+
+    @media (max-width: 640px) {
+      .score-val { font-size: 20px !important; }
+      .time-val { font-size: 14px !important; }
     }
   </style>
 </head>
@@ -61,108 +83,108 @@
 
   <canvas id="gameCanvas"></canvas>
 
-  <!-- HUD Superior -->
+  <!-- HUD Superior Gigante e Visível -->
   <div id="hud" class="absolute top-3 left-3 right-3 sm:top-5 sm:left-6 sm:right-6 flex items-center justify-between pointer-events-none z-30">
     
-    <!-- Pontuação e Tempo (Tipografia Expandida no Desktop) -->
-    <div class="bg-slate-900/90 border border-slate-700/80 px-3 py-2 sm:px-5 sm:py-3 rounded-2xl backdrop-blur-md shadow-xl pointer-events-auto">
-      <div class="flex items-center gap-3 sm:gap-6">
+    <!-- Pontuação e Tempo -->
+    <div class="hud-card px-4 py-2 sm:px-6 sm:py-3.5 rounded-2xl pointer-events-auto">
+      <div class="flex items-center gap-4 sm:gap-7">
         <div>
-          <div class="text-[9px] sm:text-xs text-slate-400 font-mono tracking-wider">PONTUAÇÃO</div>
-          <div id="scoreDisplay" class="text-lg sm:text-3xl lg:text-4xl font-black text-cyan-400 font-mono leading-none">0000</div>
+          <div class="text-[10px] sm:text-xs text-slate-400 font-mono font-bold tracking-wider mb-0.5">PONTUAÇÃO</div>
+          <div id="scoreDisplay" class="score-val font-black text-cyan-400 font-mono tracking-tight">0000</div>
         </div>
-        <div class="border-l border-slate-700 pl-3 sm:pl-5">
-          <div class="text-[9px] sm:text-xs text-slate-400 font-mono tracking-wider">TEMPO</div>
-          <div id="timeDisplay" class="text-xs sm:text-lg lg:text-xl font-mono text-white font-bold leading-none mt-0.5">00:00</div>
+        <div class="border-l-2 border-slate-700 pl-4 sm:pl-7">
+          <div class="text-[10px] sm:text-xs text-slate-400 font-mono font-bold tracking-wider mb-0.5">TEMPO</div>
+          <div id="timeDisplay" class="time-val font-mono text-white font-black mt-0.5">00:00</div>
         </div>
       </div>
     </div>
 
-    <!-- Barra de Oxigênio Centralizada (Imponente e Legível) -->
-    <div class="w-[45%] max-w-xs sm:max-w-md bg-slate-900/90 border border-slate-700/80 px-3 py-2 sm:px-5 sm:py-3 rounded-2xl backdrop-blur-md shadow-xl">
-      <div class="flex justify-between items-center text-[10px] sm:text-sm font-mono font-bold mb-1 sm:mb-1.5">
-        <span class="text-slate-200 flex items-center gap-1.5 sm:gap-2">
-          <span class="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full bg-cyan-400 animate-pulse"></span>
+    <!-- Barra de Energia (Grossa e Imponente no Topo) -->
+    <div class="hud-card w-[42%] max-w-lg px-4 py-2.5 sm:px-6 sm:py-3.5 rounded-2xl">
+      <div class="flex justify-between items-center text-[11px] sm:text-sm font-mono font-black mb-1 sm:mb-2">
+        <span class="text-slate-200 flex items-center gap-2">
+          <span class="w-2.5 h-2.5 rounded-full bg-cyan-400 animate-pulse"></span>
           ENERGIA VITAL
         </span>
-        <span id="energyText" class="text-cyan-300 font-black text-xs sm:text-base">100%</span>
+        <span id="energyText" class="text-cyan-300 font-black text-xs sm:text-lg">100%</span>
       </div>
-      <div class="w-full h-2.5 sm:h-4 bg-slate-950 rounded-full overflow-hidden border border-slate-700 p-0.5">
-        <div id="energyBar" class="h-full bg-cyan-400 rounded-full transition-all duration-75 shadow-[0_0_10px_rgba(34,211,238,0.5)]" style="width: 100%;"></div>
+      <div class="w-full h-3 sm:h-5 bg-slate-950 rounded-full overflow-hidden border-2 border-slate-700 p-0.5">
+        <div id="energyBar" class="h-full bg-cyan-400 rounded-full transition-all duration-75 shadow-[0_0_15px_rgba(34,211,238,0.7)]" style="width: 100%;"></div>
       </div>
     </div>
 
-    <!-- Botões de Ação -->
-    <div class="flex items-center gap-2 pointer-events-auto">
-      <button id="btnPause" class="bg-slate-900/90 hover:bg-slate-800 border border-slate-700/80 text-white font-mono text-xs sm:text-sm font-bold px-3 py-2 sm:px-4 sm:py-2.5 rounded-xl backdrop-blur-md transition shadow-lg active:scale-95 flex items-center gap-1.5">
-        <span id="pauseIcon">⏸️</span>
+    <!-- Botões de Ação Ampliados -->
+    <div class="flex items-center gap-2 sm:gap-3 pointer-events-auto">
+      <button id="btnPause" class="hud-card hover:bg-slate-800 text-white font-mono text-xs sm:text-sm font-black px-3 py-2 sm:px-5 sm:py-3 rounded-2xl transition active:scale-95 flex items-center gap-2">
+        <span id="pauseIcon" class="text-base sm:text-lg">⏸️</span>
         <span class="hidden md:inline" id="pauseText">PAUSAR [P]</span>
       </button>
-      <button id="btnRestartDirect" class="bg-slate-900/90 hover:bg-slate-800 border border-slate-700/80 text-amber-400 font-mono text-xs sm:text-sm font-bold px-3 py-2 sm:px-4 sm:py-2.5 rounded-xl backdrop-blur-md transition shadow-lg active:scale-95 flex items-center gap-1.5">
-        <span>🔄</span>
+      <button id="btnRestartDirect" class="hud-card hover:bg-slate-800 text-amber-400 font-mono text-xs sm:text-sm font-black px-3 py-2 sm:px-5 sm:py-3 rounded-2xl transition active:scale-95 flex items-center gap-2">
+        <span class="text-base sm:text-lg">🔄</span>
         <span class="hidden md:inline">REINICIAR [R]</span>
       </button>
     </div>
   </div>
 
-  <!-- Legenda Desktop (Maior e mais legível) -->
-  <div id="desktopControls" class="absolute bottom-3 left-1/2 -translate-x-1/2 text-slate-400 font-mono text-xs sm:text-sm pointer-events-none hidden sm:block z-30 bg-slate-900/80 px-4 py-1.5 rounded-full border border-slate-800">
+  <!-- Legenda Desktop -->
+  <div id="desktopControls" class="absolute bottom-4 left-1/2 -translate-x-1/2 text-slate-300 font-mono text-xs sm:text-sm pointer-events-none hidden sm:block z-30 hud-card px-5 py-2 rounded-full border border-slate-700">
     [A / D ou ◀ / ▶] Girar &nbsp;|&nbsp; [Espaço ou ▲] Impulso &nbsp;|&nbsp; [P] Pausar &nbsp;|&nbsp; [R] Reiniciar
   </div>
 
-  <!-- Controles Touch (Mobile com botões maiores e elevados) -->
+  <!-- Controles Touch (Celular com Botões Gigantes) -->
   <div id="touchControls" class="absolute inset-0 pointer-events-none z-40">
-    <div class="mobile-left-controls flex gap-3 pointer-events-auto">
-      <button id="btnLeft" class="touch-btn w-[68px] h-[68px] rounded-full text-white text-2xl font-bold flex items-center justify-center">◀</button>
-      <button id="btnRight" class="touch-btn w-[68px] h-[68px] rounded-full text-white text-2xl font-bold flex items-center justify-center">▶</button>
+    <div class="mobile-left-controls flex gap-4 pointer-events-auto">
+      <button id="btnLeft" class="touch-btn w-[76px] h-[76px] rounded-full text-white text-3xl font-black flex items-center justify-center">◀</button>
+      <button id="btnRight" class="touch-btn w-[76px] h-[76px] rounded-full text-white text-3xl font-black flex items-center justify-center">▶</button>
     </div>
     <div class="mobile-right-controls pointer-events-auto">
-      <button id="btnThrust" class="touch-btn w-20 h-20 rounded-full text-cyan-300 text-xs font-bold flex flex-col items-center justify-center tracking-wider border-cyan-400">
-        <span class="text-xl">▲</span>
-        <span>IMPULSO</span>
+      <button id="btnThrust" class="touch-btn w-[88px] h-[88px] rounded-full text-cyan-300 font-black flex flex-col items-center justify-center tracking-wider border-cyan-400">
+        <span class="text-2xl leading-none">▲</span>
+        <span class="text-[10px] mt-1 tracking-widest">IMPULSO</span>
       </button>
     </div>
   </div>
 
   <!-- Modal de Pausa -->
-  <div id="pauseModal" class="absolute inset-0 bg-slate-950/75 backdrop-blur-sm flex items-center justify-center p-4 z-50 hidden">
-    <div class="bg-slate-900 border border-slate-700 max-w-sm w-full p-6 rounded-2xl shadow-2xl text-center">
-      <h2 class="text-2xl font-black text-cyan-400 font-mono mb-1">JOGO PAUSADO</h2>
-      <p class="text-slate-400 text-xs font-mono mb-4">Missão em espera orbital.</p>
-      <div class="space-y-2.5">
-        <button id="btnResume" class="w-full bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-black py-2.5 rounded-xl font-mono text-xs sm:text-sm transition">RETOMAR MISSÃO</button>
-        <button id="btnRestartFromPause" class="w-full bg-slate-800 hover:bg-slate-700 border border-slate-600 text-white font-bold py-2.5 rounded-xl font-mono text-xs sm:text-sm transition">REINICIAR DO ZERO</button>
+  <div id="pauseModal" class="absolute inset-0 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4 z-50 hidden">
+    <div class="bg-slate-900 border-2 border-slate-700 max-w-sm w-full p-6 rounded-3xl shadow-2xl text-center">
+      <h2 class="text-2xl sm:text-3xl font-black text-cyan-400 font-mono mb-2">JOGO PAUSADO</h2>
+      <p class="text-slate-400 text-sm font-mono mb-5">Missão em espera orbital.</p>
+      <div class="space-y-3">
+        <button id="btnResume" class="w-full bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-black py-3 rounded-2xl font-mono text-sm sm:text-base transition">RETOMAR MISSÃO</button>
+        <button id="btnRestartFromPause" class="w-full bg-slate-800 hover:bg-slate-700 border border-slate-600 text-white font-black py-3 rounded-2xl font-mono text-sm sm:text-base transition">REINICIAR DO ZERO</button>
       </div>
     </div>
   </div>
 
   <!-- Modal Inicial / Game Over -->
   <div id="menuModal" class="absolute inset-0 bg-slate-950/90 backdrop-blur-md flex items-center justify-center p-4 z-50">
-    <div class="bg-slate-900 border border-slate-700 max-w-md w-full p-6 sm:p-7 rounded-2xl shadow-2xl text-center">
+    <div class="bg-slate-900 border-2 border-slate-700 max-w-md w-full p-6 sm:p-8 rounded-3xl shadow-2xl text-center">
       <h1 class="text-3xl sm:text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-purple-500 tracking-wider mb-2">
         ORBIT FALL
       </h1>
-      <p class="text-slate-400 text-xs sm:text-sm mb-4">Mantenha a órbita, colete cristais para energia e fuja dos meteoros!</p>
+      <p class="text-slate-400 text-xs sm:text-sm mb-5">Mantenha a órbita, colete cristais para energia e fuja dos meteoros!</p>
 
-      <div id="gameOverStats" class="hidden mb-4 bg-slate-800/60 p-4 rounded-xl border border-slate-700/60">
-        <div class="text-xs text-slate-400 font-mono">PONTUAÇÃO FINAL</div>
+      <div id="gameOverStats" class="hidden mb-5 bg-slate-800/60 p-4 rounded-2xl border border-slate-700">
+        <div class="text-xs text-slate-400 font-mono font-bold tracking-wider">PONTUAÇÃO FINAL</div>
         <div id="finalScore" class="text-3xl sm:text-4xl font-black text-cyan-300 font-mono mb-3">0</div>
         
         <div class="flex gap-2">
-          <input id="playerName" type="text" maxlength="10" placeholder="SEU NOME" class="bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-white font-mono text-xs sm:text-sm w-full outline-none focus:border-cyan-400 text-center uppercase">
-          <button id="saveScoreBtn" class="bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold px-4 py-2 rounded-lg text-xs sm:text-sm transition">Salvar</button>
+          <input id="playerName" type="text" maxlength="10" placeholder="SEU NOME" class="bg-slate-900 border-2 border-slate-600 rounded-xl px-3 py-2 text-white font-mono text-sm sm:text-base w-full outline-none focus:border-cyan-400 text-center uppercase font-bold">
+          <button id="saveScoreBtn" class="bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-black px-5 py-2 rounded-xl text-sm sm:text-base transition">Salvar</button>
         </div>
       </div>
 
       <!-- Leaderboard Top 5 -->
-      <div class="mb-4 bg-slate-950/60 p-3.5 rounded-xl border border-slate-800 text-left">
-        <div class="text-xs text-slate-500 font-mono font-bold uppercase mb-1.5 tracking-wider">🏆 Top 5 Pilotos</div>
+      <div class="mb-5 bg-slate-950/70 p-4 rounded-2xl border border-slate-800 text-left">
+        <div class="text-xs text-slate-400 font-mono font-bold uppercase mb-2 tracking-wider">🏆 Top 5 Pilotos</div>
         <div id="leaderboardList" class="space-y-1 text-xs sm:text-sm font-mono text-slate-300">
           <div class="text-slate-500 text-xs">Nenhum recorde registrado ainda.</div>
         </div>
       </div>
 
-      <button id="startBtn" class="w-full bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 font-black py-3 rounded-xl tracking-wider text-sm sm:text-base shadow-lg shadow-cyan-500/20 active:scale-95 transition">
+      <button id="startBtn" class="w-full bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 font-black py-3.5 rounded-2xl tracking-wider text-base sm:text-lg shadow-lg shadow-cyan-500/25 active:scale-95 transition">
         INICIAR MISSÃO
       </button>
     </div>
@@ -192,7 +214,6 @@
     const btnRestartFromPause = document.getElementById('btnRestartFromPause');
     const pauseIcon = document.getElementById('pauseIcon');
 
-    // Forçar exibição de botões touch em mobile
     const hasTouch = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0) || window.innerWidth < 800;
     if (hasTouch) {
       touchControls.style.display = 'block';
@@ -217,10 +238,9 @@
       centerX = width / 2;
 
       const isMobile = width < 640;
-      // Posiciona a arena ligeiramente mais alta no celular para dar folga aos controles elevados
-      centerY = isMobile ? (height * 0.43) : (height * 0.52);
+      centerY = isMobile ? (height * 0.42) : (height * 0.52);
 
-      const availableSpace = Math.min(width, isMobile ? height * 0.65 : height * 0.85);
+      const availableSpace = Math.min(width, isMobile ? height * 0.62 : height * 0.82);
       arenaRadius = availableSpace * 0.44;
 
       initStars();
@@ -249,7 +269,6 @@
         angle: 0,
         radius: 10,
         energy: 100,
-        maxEnergy: 100,
         energyDepletionRate: 3.5,
         invulnerableTime: 3.0,
         thrusting: false,
@@ -307,7 +326,6 @@
       }
     }
 
-    // Teclado
     window.addEventListener('keydown', (e) => {
       keys[e.code] = true;
       if (['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.code)) e.preventDefault();
@@ -316,7 +334,6 @@
     });
     window.addEventListener('keyup', (e) => { keys[e.code] = false; });
 
-    // Touch Seguro
     function bindTouch(id, onStart, onEnd) {
       const el = document.getElementById(id);
       el.addEventListener('touchstart', (e) => { e.preventDefault(); e.stopPropagation(); onStart(); }, { passive: false });
@@ -534,12 +551,12 @@
         spawnCrystal();
       }
 
-      // Coleta de Cristais (Recarga calibrada em exatamente 15%)
+      // CRISTAL CRAVADO EM EXATAMENTE 15% DE RECARGA
       for (let i = crystals.length - 1; i >= 0; i--) {
         const c = crystals[i];
         c.pulse += dt * 4;
         if (Math.hypot(ship.x - c.x, ship.y - c.y) < ship.radius + c.radius + 6) {
-          ship.energy = Math.min(ship.maxEnergy, ship.energy + 15);
+          ship.energy = Math.min(100, ship.energy + 15);
           score += 400;
           addExplosion(c.x, c.y, '#22d3ee', 14);
           crystals.splice(i, 1);
@@ -563,13 +580,13 @@
       energyText.innerText = `${Math.ceil(ship.energy)}%`;
       if (ship.energy < 25) {
         energyBar.className = 'h-full bg-red-500 transition-all duration-75 animate-pulse';
-        energyText.className = 'text-red-400 font-bold';
+        energyText.className = 'text-red-400 font-black text-xs sm:text-lg';
       } else if (ship.energy < 50) {
         energyBar.className = 'h-full bg-amber-400 transition-all duration-75';
-        energyText.className = 'text-amber-300 font-bold';
+        energyText.className = 'text-amber-300 font-black text-xs sm:text-lg';
       } else {
-        energyBar.className = 'h-full bg-cyan-400 rounded-full transition-all duration-75';
-        energyText.className = 'text-cyan-300 font-black';
+        energyBar.className = 'h-full bg-cyan-400 rounded-full transition-all duration-75 shadow-[0_0_15px_rgba(34,211,238,0.7)]';
+        energyText.className = 'text-cyan-300 font-black text-xs sm:text-lg';
       }
     }
 
